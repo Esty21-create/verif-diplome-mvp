@@ -3,6 +3,7 @@ import { chiffrer } from '../../../lib/chiffrement';
 import { chiffrerDonneesEtudiant } from '../../../lib/etudiantChiffrement';
 import { FILIERES_ENSPY, CYCLES_ENSPY } from '../../../lib/filieresEnspy';
 import { creerCodeConnexion, modeDemoActif } from '../../../lib/codeConnexion';
+import { envoyerCodeConnexion, masquerEmail, smtpConfigure } from '../../../lib/envoiEmail';
 
 // Auto-inscription d'un étudiant absent de la base (/espace/inscription).
 // Réponses d'erreur : { erreur: <texte FR>, code: <identifiant stable> } — la
@@ -76,9 +77,10 @@ export default async function handler(req, res) {
     );
   }
 
-  // Sans envoi d'email branché ET sans mode démo, on ne saurait pas remettre
-  // le code : on refuse avant de créer quoi que ce soit.
-  if (!modeDemoActif()) {
+  // Ni SMTP configuré ni mode démo : on ne saurait pas remettre le code, on
+  // refuse avant de créer quoi que ce soit.
+  const demo = modeDemoActif();
+  if (!demo && !smtpConfigure()) {
     return erreur(
       res, 503, 'ENVOI_NON_CONFIGURE',
       "L'envoi d'email n'est pas encore configuré : la création d'accès est indisponible"
@@ -114,12 +116,32 @@ export default async function handler(req, res) {
       return creerCodeConnexion(tx, matricule);
     });
 
-    // TODO envoi réel : à brancher ici (SMTP, Resend, etc.) puis passer
-    // MODE_DEMO_CODE_CONNEXION à "false". En démo, le code est renvoyé au
-    // navigateur pour affichage à l'écran.
+    // Mode démo : le code est renvoyé au navigateur pour affichage à l'écran.
+    if (demo) {
+      return res.status(201).json({
+        message: 'Accès créé. Saisissez le code de connexion pour continuer.',
+        codeDemo: code,
+      });
+    }
+
+    // Envoi réel. Si l'email ne part pas, on annule la création : sinon
+    // l'étudiant se retrouverait avec un accès dont il n'a jamais reçu le code
+    // et un matricule "déjà pris" pour retenter l'inscription.
+    try {
+      await envoyerCodeConnexion(email, code);
+    } catch (e) {
+      console.error("Échec d'envoi du code de connexion :", e?.message || e);
+      await prisma.codeConnexion.deleteMany({ where: { matricule } });
+      await prisma.etudiant.deleteMany({ where: { matricule } });
+      return erreur(
+        res, 502, 'EMAIL_ECHEC',
+        "Le code n'a pas pu être envoyé à cette adresse email. Vérifiez-la puis réessayez."
+      );
+    }
+
     return res.status(201).json({
-      message: 'Accès créé. Saisissez le code de connexion pour continuer.',
-      codeDemo: code,
+      message: 'Accès créé. Un code de connexion vient de vous être envoyé par email.',
+      emailMasque: masquerEmail(email),
     });
   } catch (e) {
     // Course entre deux inscriptions simultanées du même matricule.

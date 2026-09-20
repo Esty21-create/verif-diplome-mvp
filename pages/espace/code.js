@@ -21,8 +21,35 @@ export default function SaisieCode() {
   const [matricule, setMatricule] = useState('');
   const [code, setCode] = useState('');
   const [codeDemo, setCodeDemo] = useState(null);
+  const [emailMasque, setEmailMasque] = useState(null);
   const [erreur, setErreur] = useState(null);
   const [enCours, setEnCours] = useState(false);
+  const [attenteRenvoi, setAttenteRenvoi] = useState(0);
+  const [renvoye, setRenvoye] = useState(false);
+
+  // Décompte du délai avant de pouvoir redemander un code (même délai que le serveur).
+  useEffect(() => {
+    if (attenteRenvoi <= 0) return undefined;
+    const minuteur = setTimeout(() => setAttenteRenvoi((s) => s - 1), 1000);
+    return () => clearTimeout(minuteur);
+  }, [attenteRenvoi]);
+
+  const renvoyerCode = async () => {
+    if (!matricule.trim() || attenteRenvoi > 0) return;
+    setErreur(null);
+    setAttenteRenvoi(60);
+    setRenvoye(true);
+    try {
+      await fetch('/api/espace/renvoyer-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricule }),
+      });
+    } catch {
+      setErreur(t('espaceLogin.erreurReseau'));
+      setRenvoye(false);
+    }
+  };
 
   // Reprend le matricule (et le code démo) laissés par /espace/inscription.
   useEffect(() => {
@@ -32,6 +59,7 @@ export default function SaisieCode() {
         const donnees = JSON.parse(brut);
         setMatricule(donnees.matricule || '');
         setCodeDemo(donnees.codeDemo || null);
+        setEmailMasque(donnees.emailMasque || null);
       }
     } catch {
       // Pas de données : l'étudiant saisit lui-même son matricule.
@@ -88,6 +116,12 @@ export default function SaisieCode() {
         </div>
       )}
 
+      {emailMasque && !codeDemo && (
+        <p role="status" style={{ margin: '0 0 16px', padding: 12, background: '#eafaf1', border: '1px solid #cfe8d8', borderRadius: 6, fontSize: 14 }}>
+          {t('codeConnexion.envoye', { email: emailMasque })}
+        </p>
+      )}
+
       <form onSubmit={valider} style={{ display: 'grid', gap: 12 }}>
         <label style={{ display: 'grid', gap: 4 }}>
           <span style={{ fontSize: 13, color: '#444' }}>{t('codeConnexion.matricule')}</span>
@@ -128,6 +162,27 @@ export default function SaisieCode() {
       </form>
 
       {erreur && <p role="alert" style={{ color: '#c0392b' }}>{erreur}</p>}
+
+      {/* En démo le code est déjà à l'écran : pas de renvoi (voir renvoyer-code.js). */}
+      {!codeDemo && (
+        <div style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            onClick={renvoyerCode}
+            disabled={attenteRenvoi > 0 || !matricule.trim()}
+            style={{ background: 'none', border: 'none', padding: 0, color: attenteRenvoi > 0 ? '#999' : '#1e8449', cursor: attenteRenvoi > 0 ? 'default' : 'pointer', fontSize: 13, textDecoration: 'underline' }}
+          >
+            {attenteRenvoi > 0
+              ? t('codeConnexion.renvoyerAttente', { secondes: String(attenteRenvoi) })
+              : t('codeConnexion.renvoyer')}
+          </button>
+          {renvoye && (
+            <p role="status" style={{ margin: '8px 0 0', fontSize: 13, color: '#666' }}>
+              {t('codeConnexion.codeRenvoye')}
+            </p>
+          )}
+        </div>
+      )}
 
       <p style={{ fontSize: 13, marginTop: 20 }}>
         <Link href="/espace/login" style={{ color: '#666' }}>

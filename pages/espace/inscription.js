@@ -59,7 +59,11 @@ export default function InscriptionEtudiant() {
         try {
           window.sessionStorage.setItem(
             CLE_INSCRIPTION_EN_COURS,
-            JSON.stringify({ matricule: champs.matricule.trim(), codeDemo: donnees.codeDemo || null })
+            JSON.stringify({
+              matricule: champs.matricule.trim(),
+              codeDemo: donnees.codeDemo || null,
+              emailMasque: donnees.emailMasque || null,
+            })
           );
         } catch {
           // sessionStorage indisponible : la page suivante demandera le matricule.

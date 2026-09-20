@@ -79,6 +79,7 @@ pages/admin/documents.js  → documents publiés + journal des 20 dernières pub
 pages/admin/statistiques.js → compteurs : étudiants, documents par type, demandes par statut/nature, délai moyen de validation, consultations (modèle ConsultationVerification, sans donnée sur le visiteur)
 public/manifest.json + lib/installationPWA.js + components/InstallerApplication.js → PWA installable (manifeste + icônes, SANS service worker ni hors-ligne) ; bouton d'installation sur /espace
 pages/espace/inscription.js + pages/espace/code.js → auto-inscription puis saisie du code de connexion (API : pages/api/espace/inscription.js, verifier-code.js ; logique : lib/codeConnexion.js, modèle CodeConnexion)
+lib/envoiEmail.js + pages/api/espace/renvoyer-code.js → envoi SMTP des codes de connexion (nodemailer) et renvoi du code
 lib/journalEmission.js    → crée document + ligne de journal dans une même transaction
 pages/verifier/[code].js  → page PUBLIQUE de vérification (ouverte via QR)
 pages/cgu.js              → page PUBLIQUE : Conditions Générales d'Utilisation
@@ -164,20 +165,28 @@ de cette fonctionnalité, non conservé dans le dépôt car à usage unique).
 - **Authentification étudiant très simplifiée** (matricule + date de
   naissance) : suffisant pour démontrer le concept, mais pas un vrai secret.
   À remplacer par un code envoyé par email/SMS avant un usage réel.
-- **Auto-inscription (`/espace/inscription`) en MODE DÉMO** : l'étudiant
-  crée lui-même son accès (email chiffré, CGU acceptées et horodatées), puis
-  saisit un code à 6 chiffres sur `/espace/code`. **Aucun email n'est envoyé** :
-  le code est affiché à l'écran, ce qui n'a aucune valeur d'authentification.
-  Avant tout usage réel : brancher un envoi d'email dans
-  `pages/api/espace/inscription.js` puis mettre
-  `MODE_DEMO_CODE_CONNEXION="false"` (l'inscription est alors refusée tant
-  que ce n'est pas fait). Autres limites : l'email n'est pas vérifié à
-  l'inscription (rien ne prouve qu'il appartient à l'étudiant), le formulaire
-  n'a pas de limitation de débit, et n'importe qui peut réserver un matricule
-  encore libre avec de fausses informations — les demandes restent toutes
-  validées par un agent avant publication. La connexion par code n'existe que
-  pour l'inscription ; les étudiants créés par un agent n'ont pas d'email et
-  se connectent toujours avec matricule + date de naissance.
+- **Auto-inscription (`/espace/inscription`) et envoi des codes par email** :
+  l'étudiant crée lui-même son accès (email chiffré, CGU acceptées et
+  horodatées), puis saisit sur `/espace/code` le code à 6 chiffres reçu par
+  email (valable 10 min, 5 essais, bouton « Renvoyer le code » avec un délai
+  de 60 s). L'envoi passe par n'importe quel serveur SMTP (`nodemailer`,
+  `lib/envoiEmail.js`) : renseigner `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+  `SMTP_PASS` et `SMTP_FROM` dans `.env` (voir `.env.example`) active
+  l'envoi réel. Sans SMTP configuré, la plateforme reste en **MODE DÉMO** : le
+  code est affiché à l'écran, ce qui n'a aucune valeur d'authentification.
+  `MODE_DEMO_CODE_CONNEXION="false"` (recommandé en production) interdit
+  cette démo : l'inscription est refusée tant que le SMTP n'est pas
+  configuré. Si l'email ne part pas, l'inscription est annulée (pas d'accès
+  créé sans code remis). Autres limites : l'email n'est pas vérifié avant la
+  création du compte (le code envoyé prouve seulement, à la connexion, que
+  l'adresse saisie est joignable), il n'y a pas de limitation de débit sur
+  le formulaire, n'importe qui peut réserver un matricule encore libre avec
+  de fausses informations, et un attaquant qui connaît un matricule peut
+  redemander un code toutes les 60 s (ce qui remet à zéro le compteur
+  d'essais) — les demandes restent toutes validées par un agent avant
+  publication. La connexion par code n'existe que pour les comptes
+  auto-inscrits ; les étudiants créés par un agent n'ont pas d'email et se
+  connectent toujours avec matricule + date de naissance.
 - **SQLite en fichier local** : parfait pour développer et démontrer, mais à
   migrer vers une vraie base de données (PostgreSQL) avant un déploiement
   avec plusieurs utilisateurs simultanés.
