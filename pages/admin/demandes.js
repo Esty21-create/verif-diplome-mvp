@@ -41,9 +41,14 @@ export default function AdminDemandes({ demandes }) {
     <div style={{ maxWidth: 860, margin: '40px auto', padding: 24, fontFamily: 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h1 style={{ fontSize: 20 }}>Demandes de publication — ENSPY (pilote)</h1>
-        <Link href="/admin/emettre" style={{ fontSize: 13, color: '#666' }}>
-          Publier un document directement
-        </Link>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <Link href="/admin/statistiques" style={{ fontSize: 13, color: '#666' }}>
+            Statistiques
+          </Link>
+          <Link href="/admin/emettre" style={{ fontSize: 13, color: '#666' }}>
+            Publier un document directement
+          </Link>
+        </div>
       </div>
       <p style={{ color: '#666', fontSize: 14 }}>
         Demandes soumises par les étudiants eux-mêmes depuis /demande-publication : publication

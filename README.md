@@ -76,6 +76,8 @@ pages/api/demandes/index.js  → API protégée qui enregistre la demande en att
 pages/admin/demandes.js      → file d'attente des demandes à examiner (back-office)
 pages/admin/demandes/[id].js → examen d'une demande : compléter les infos, valider ou rejeter
 pages/admin/documents.js  → documents publiés + journal des 20 dernières publications (modèle JournalEmission)
+pages/admin/statistiques.js → compteurs : étudiants, documents par type, demandes par statut/nature, délai moyen de validation, consultations (modèle ConsultationVerification, sans donnée sur le visiteur)
+public/manifest.json + lib/installationPWA.js + components/InstallerApplication.js → PWA installable (manifeste + icônes, SANS service worker ni hors-ligne) ; bouton d'installation sur /espace
 lib/journalEmission.js    → crée document + ligne de journal dans une même transaction
 pages/verifier/[code].js  → page PUBLIQUE de vérification (ouverte via QR)
 pages/cgu.js              → page PUBLIQUE : Conditions Générales d'Utilisation

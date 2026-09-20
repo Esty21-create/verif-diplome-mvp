@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { prisma } from '../../lib/prisma';
 import { dechiffrer } from '../../lib/chiffrement';
 import { useLangue } from '../../lib/i18n/LangueContext';
@@ -19,6 +18,15 @@ export async function getServerSideProps({ params }) {
 
   if (!document) {
     return { props: { statut: 'introuvable' } };
+  }
+
+  // Compteur de consultations (voir /admin/statistiques) : on ne retient que
+  // le fait qu'une consultation a eu lieu, jamais d'information sur le
+  // visiteur. Un échec d'écriture ne doit surtout pas empêcher la vérification.
+  try {
+    await prisma.consultationVerification.create({ data: { documentId: document.id } });
+  } catch (erreur) {
+    console.error('Consultation non enregistrée', erreur);
   }
 
   if (document.revoque) {
@@ -98,12 +106,6 @@ function Conteneur({ children }) {
       </div>
       <h1 style={{ fontSize: 20, marginBottom: 24 }}>{t('verifier.titre')}</h1>
       {children}
-      {/* Simple lien : aucune acceptation ni action requise pour consulter le résultat. */}
-      <footer style={{ marginTop: 40, paddingTop: 12, borderTop: '1px solid #eee', fontSize: 12 }}>
-        <Link href="/cgu" style={{ color: '#888' }}>
-          {t('verifier.mentionsLegales')}
-        </Link>
-      </footer>
     </div>
   );
 }

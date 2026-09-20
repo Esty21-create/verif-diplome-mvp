@@ -96,6 +96,19 @@ model JournalEmission {
   @@index([date])
 }
 
+// Une ligne par chargement de /verifier/[code] pour un document existant, pour
+// les statistiques de /admin/statistiques. Volontairement AUCUNE information
+// sur le visiteur (ni IP, ni user-agent, ni cookie) : le visiteur est un tiers
+// sans compte, seul le fait qu'une consultation a eu lieu est retenu.
+model ConsultationVerification {
+  id         String   @id @default(cuid())
+  documentId String
+  date       DateTime @default(now())
+
+  @@index([documentId])
+  @@index([date])
+}
+
 // Demande de publication soumise directement par un ancien/actuel étudiant
 // depuis /demande-publication (accessible depuis son espace personnel,
 // /espace), à examiner par un agent de la scolarité sur /admin/demandes

@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { matriculeSessionValide } from '../../lib/etudiantSession';
 import { dechiffrer } from '../../lib/chiffrement';
 import LogoEnspy from '../../components/LogoEnspy';
+import InstallerApplication from '../../components/InstallerApplication';
 import { formaterTarif } from '../../lib/tarifs';
 import { useLangue } from '../../lib/i18n/LangueContext';
 
@@ -101,6 +102,10 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
           sortie: etudiant.anneeSortie || t('espace.enCours'),
         })}
       </p>
+
+      <div style={{ marginTop: 16 }}>
+        <InstallerApplication />
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
         <h2 style={{ fontSize: 16 }}>{t('espace.mesDocuments')}</h2>

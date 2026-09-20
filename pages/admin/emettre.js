@@ -180,6 +180,9 @@ export default function EmettreDocument() {
           <a href="/admin/demandes" style={{ color: '#666', fontSize: 13 }}>
             Demandes à examiner
           </a>
+          <a href="/admin/statistiques" style={{ color: '#666', fontSize: 13 }}>
+            Statistiques
+          </a>
           <button
             type="button"
             onClick={seDeconnecter}
