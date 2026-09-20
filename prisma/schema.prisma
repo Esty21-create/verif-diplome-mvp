@@ -1,0 +1,114 @@
+// Schéma de la base de données du MVP
+// SQLite pour démarrer : aucune configuration serveur nécessaire.
+// On pourra migrer vers PostgreSQL plus tard (juste changer le "provider" ci-dessous).
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Un ancien/actuel étudiant de l'université pilote (ENSPY)
+model Etudiant {
+  id             String     @id @default(cuid())
+  matricule      String     @unique
+  // Chiffrés au repos (AES-256-GCM, voir lib/chiffrement.js) : données
+  // personnelles sensibles au sens de la loi n°2024/017. matricule reste en
+  // clair car utilisé comme critère de recherche en base.
+  nom            String
+  prenom         String
+  // Stocke le texte chiffré (donc plus une vraie date pour Prisma/SQLite) :
+  // déchiffrer avec lib/etudiantChiffrement.js avant tout usage comme Date.
+  dateNaissance  String
+  // Année d'entrée au cycle ingénieur (ex: 2015). Remplace l'ancien champ unique
+  // "promotion" pour pouvoir gérer les cas de reprise de classe : deux étudiants
+  // entrés la même année peuvent sortir des années différentes.
+  anneeEntree    Int
+  // Année de sortie/diplômation effective. Peut être vide si l'étudiant est
+  // encore en cours de formation. Supérieure à anneeEntree + 5 en cas de reprise.
+  anneeSortie    Int?
+  filiere        String // ex: "Génie Informatique (GI)" — voir lib/filieresEnspy.js
+  // Cycle réel de l'ENSPY : "Ingénieur (5 ans)" ou "Licence en Sciences de
+  // l'Ingénieur (3 ans)". Détermine le nombre de niveaux disponibles pour
+  // cet étudiant (voir lib/filieresEnspy.js).
+  cycle          String     @default("Ingénieur (5 ans)")
+  // Date d'acceptation des Conditions Générales d'Utilisation (/cgu),
+  // recueillie lors de la première connexion à /espace ou, à défaut, avant
+  // toute soumission sur /demande-publication. Null tant que l'étudiant n'a
+  // jamais accepté — preuve de consentement explicite et traçable exigée
+  // par la loi camerounaise n°2024/017 sur la protection des données
+  // personnelles (voir CGU, Article 6).
+  dateAcceptationCGU DateTime?
+  createdAt      DateTime   @default(now())
+  documents      Document[]
+}
+
+// Un document officiel émis (attestation, relevé, diplôme)
+model Document {
+  id             String   @id @default(cuid())
+  // Code court affiché sous le QR code, saisissable à la main si le scan échoue
+  codeVerif      String   @unique
+  // Empreinte cryptographique du contenu du document (preuve d'intégrité)
+  hash           String
+  type           String
+  universite     String   @default("ENSPY")
+  dateEmission   DateTime @default(now())
+  // Niveau concerné par le document (ex: "3ème année"). Combiné à anneeAcademique,
+  // permet de distinguer deux relevés du même niveau en cas de reprise de classe
+  // (ex: 3ème année 2018-2019 ET 3ème année 2019-2020 pour le même étudiant).
+  niveau         String   @default("")
+  anneeAcademique String  @default("") // ex: "2018-2019"
+  // Portée du relevé/document : "Semestre 1", "Semestre 2" ou "Annuel"
+  // (un étudiant peut avoir besoin d'un relevé pour un seul semestre).
+  semestre       String   @default("Annuel")
+  // Champs affichés publiquement lors de la vérification (rien de sensible : pas de notes)
+  intitule       String // ex: "Attestation de réussite - Master Génie Informatique"
+  // Chemin du PDF généré (stocké localement pour le MVP)
+  cheminFichier  String
+  etudiant       Etudiant @relation(fields: [etudiantId], references: [id])
+  etudiantId     String
+  // Révocation possible en cas d'erreur ou de fraude détectée après coup
+  revoque        Boolean  @default(false)
+}
+
+// Demande de publication soumise directement par un ancien/actuel étudiant
+// depuis /demande-publication (accessible depuis son espace personnel,
+// /espace), à examiner par un agent de la scolarité sur /admin/demandes
+// avant toute publication réelle. Rien n'est tamponné ni rendu public tant
+// que le statut n'est pas passé à VALIDEE. Le suivi se fait directement dans
+// /espace (pas de code de suivi séparé : l'étudiant est déjà identifié par
+// sa session).
+model DemandePublication {
+  id                 String    @id @default(cuid())
+  // "PUBLICATION" (fichier déjà en possession de l'étudiant, à tamponner) |
+  // "DUPLICATA" (document perdu, à faire réémettre par l'école en interne
+  // avant de pouvoir être publié normalement — voir pages/api/admin/demandes/[id]/valider.js).
+  nature             String    @default("PUBLICATION")
+  matricule          String
+  nom                String
+  prenom             String
+  typeDocument       String
+  // Fichier tel que téléversé par l'étudiant, stocké HORS de /public tant
+  // que la demande n'est pas validée (pas question qu'il soit accessible
+  // par simple devinette d'URL avant vérification par un agent). Absent
+  // pour une demande de duplicata : il n'y a par définition pas de fichier.
+  cheminFichier      String?
+  nomFichierOriginal String?
+  mimeType           String?
+  // Explication optionnelle donnée par l'étudiant (utile notamment pour
+  // préciser les circonstances d'une perte de document).
+  commentaireEtudiant String?
+  // Une seule de ces trois valeurs : "EN_ATTENTE" | "VALIDEE" | "REJETEE"
+  // (pas d'enum natif ici : SQLite n'en a pas côté Prisma, la contrainte est
+  // appliquée par le code des routes API qui écrivent ce champ).
+  statut             String    @default("EN_ATTENTE")
+  // Motif du rejet, obligatoire dès que statut passe à REJETEE
+  commentaireAdmin  String?
+  dateSoumission     DateTime  @default(now())
+  dateTraitement     DateTime?
+  // Renseigné une fois le document effectivement tamponné et publié
+  documentId         String?
+}

@@ -1,0 +1,33 @@
+# Dépendances et build
+node_modules/
+.next/
+
+# Variables d'environnement (mot de passe admin, secrets)
+.env
+.env.local
+
+# Base de données locale : contient de vraies données d'étudiants dès que
+# le pilote est utilisé pour de vrai, jamais à pousser. Couvre aussi toute
+# sauvegarde (ex: avant une migration) qui pourrait contenir du texte en
+# clair antérieur au chiffrement.
+prisma/dev.db
+prisma/dev.db-journal
+
+# Toute sauvegarde (ex: avant une migration), où qu'elle se trouve dans le
+# projet — peut contenir des données en clair antérieures à un chiffrement.
+*.backup*
+
+# Documents émis (contiennent des données personnelles réelles une fois le
+# système utilisé pour de vrai).
+public/documents-emis/
+
+# Documents téléversés par les étudiants via /demande-publication, en
+# attente d'examen par un agent (données personnelles réelles).
+storage/
+
+# Documents d'exemple/test utilisés pour développer le tampon numérique :
+# peuvent contenir des données personnelles réelles, à ne jamais pousser
+# tant qu'aucune anonymisation n'est garantie.
+exemples/
+
+npm-debug.log*
