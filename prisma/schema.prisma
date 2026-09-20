@@ -23,6 +23,11 @@ model Etudiant {
   // Stocke le texte chiffré (donc plus une vraie date pour Prisma/SQLite) :
   // déchiffrer avec lib/etudiantChiffrement.js avant tout usage comme Date.
   dateNaissance  String
+  // Chiffré au repos comme les trois champs ci-dessus (voir
+  // lib/etudiantChiffrement.js). Renseigné à l'auto-inscription
+  // (/espace/inscription) ; null pour les étudiants créés par un agent, qui
+  // n'ont pas d'email enregistré.
+  email          String?
   // Année d'entrée au cycle ingénieur (ex: 2015). Remplace l'ancien champ unique
   // "promotion" pour pouvoir gérer les cas de reprise de classe : deux étudiants
   // entrés la même année peuvent sortir des années différentes.
@@ -44,6 +49,21 @@ model Etudiant {
   dateAcceptationCGU DateTime?
   createdAt      DateTime   @default(now())
   documents      Document[]
+}
+
+// Code de connexion à usage unique (6 chiffres), généré à l'auto-inscription
+// et saisi sur /espace/code. Un seul code actif par matricule (un nouveau
+// remplace l'ancien). On ne stocke jamais le code en clair, seulement son
+// empreinte HMAC (voir lib/codeConnexion.js). Sans relation Prisma vers
+// Etudiant, comme JournalEmission : table purement technique.
+model CodeConnexion {
+  matricule   String   @id
+  codeHash    String
+  expireLe    DateTime
+  // Nombre d'essais déjà faits ; au-delà du maximum le code est bloqué
+  // (il faut en demander un nouveau).
+  tentatives  Int      @default(0)
+  creeLe      DateTime @default(now())
 }
 
 // Un document officiel émis (attestation, relevé, diplôme)

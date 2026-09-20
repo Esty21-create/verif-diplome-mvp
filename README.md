@@ -78,6 +78,7 @@ pages/admin/demandes/[id].js → examen d'une demande : compléter les infos, va
 pages/admin/documents.js  → documents publiés + journal des 20 dernières publications (modèle JournalEmission)
 pages/admin/statistiques.js → compteurs : étudiants, documents par type, demandes par statut/nature, délai moyen de validation, consultations (modèle ConsultationVerification, sans donnée sur le visiteur)
 public/manifest.json + lib/installationPWA.js + components/InstallerApplication.js → PWA installable (manifeste + icônes, SANS service worker ni hors-ligne) ; bouton d'installation sur /espace
+pages/espace/inscription.js + pages/espace/code.js → auto-inscription puis saisie du code de connexion (API : pages/api/espace/inscription.js, verifier-code.js ; logique : lib/codeConnexion.js, modèle CodeConnexion)
 lib/journalEmission.js    → crée document + ligne de journal dans une même transaction
 pages/verifier/[code].js  → page PUBLIQUE de vérification (ouverte via QR)
 pages/cgu.js              → page PUBLIQUE : Conditions Générales d'Utilisation
@@ -163,6 +164,20 @@ de cette fonctionnalité, non conservé dans le dépôt car à usage unique).
 - **Authentification étudiant très simplifiée** (matricule + date de
   naissance) : suffisant pour démontrer le concept, mais pas un vrai secret.
   À remplacer par un code envoyé par email/SMS avant un usage réel.
+- **Auto-inscription (`/espace/inscription`) en MODE DÉMO** : l'étudiant
+  crée lui-même son accès (email chiffré, CGU acceptées et horodatées), puis
+  saisit un code à 6 chiffres sur `/espace/code`. **Aucun email n'est envoyé** :
+  le code est affiché à l'écran, ce qui n'a aucune valeur d'authentification.
+  Avant tout usage réel : brancher un envoi d'email dans
+  `pages/api/espace/inscription.js` puis mettre
+  `MODE_DEMO_CODE_CONNEXION="false"` (l'inscription est alors refusée tant
+  que ce n'est pas fait). Autres limites : l'email n'est pas vérifié à
+  l'inscription (rien ne prouve qu'il appartient à l'étudiant), le formulaire
+  n'a pas de limitation de débit, et n'importe qui peut réserver un matricule
+  encore libre avec de fausses informations — les demandes restent toutes
+  validées par un agent avant publication. La connexion par code n'existe que
+  pour l'inscription ; les étudiants créés par un agent n'ont pas d'email et
+  se connectent toujours avec matricule + date de naissance.
 - **SQLite en fichier local** : parfait pour développer et démontrer, mais à
   migrer vers une vraie base de données (PostgreSQL) avant un déploiement
   avec plusieurs utilisateurs simultanés.

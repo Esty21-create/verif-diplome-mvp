@@ -146,6 +146,14 @@ export default function ConnexionEtudiant() {
       )}
 
       {erreur && <p style={{ color: '#c0392b' }}>{erreur}</p>}
+
+      {!cguRequise && (
+        <div style={{ marginTop: 24, padding: 12, border: '1px solid #cfe8d8', background: '#eafaf1', borderRadius: 6, textAlign: 'center' }}>
+          <Link href="/espace/inscription" style={{ color: '#1e8449', fontWeight: 600 }}>
+            {t('espaceLogin.premiereVisite')}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
