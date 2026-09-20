@@ -5,6 +5,7 @@ import { sessionValide } from '../../../../../lib/adminSession';
 import { niveauxDisponibles } from '../../../../../lib/filieresEnspy';
 import { lireFichierDemande, supprimerFichierDemande } from '../../../../../lib/demandesStorage';
 import { chiffrerDonneesEtudiant } from '../../../../../lib/etudiantChiffrement';
+import { creerDocumentJournalise } from '../../../../../lib/journalEmission';
 
 // Valide une demande. Deux natures très différentes :
 // - "PUBLICATION" : le fichier déjà téléversé (jamais re-demandé à l'agent)
@@ -98,8 +99,9 @@ export default async function handler(req, res) {
       urlVerification,
     });
 
-    const document = await prisma.document.create({
-      data: {
+    const document = await creerDocumentJournalise(
+      prisma,
+      {
         codeVerif,
         hash,
         type: demande.typeDocument,
@@ -111,7 +113,8 @@ export default async function handler(req, res) {
         cheminFichier: cheminRelatif,
         etudiantId: etudiant.id,
       },
-    });
+      { source: 'VALIDATION_DEMANDE', demandeId: id }
+    );
 
     await prisma.demandePublication.update({
       where: { id },

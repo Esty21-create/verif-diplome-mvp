@@ -1,9 +1,16 @@
+import Link from 'next/link';
 import { prisma } from '../../lib/prisma';
 import { dechiffrer } from '../../lib/chiffrement';
+import { useLangue } from '../../lib/i18n/LangueContext';
 import LogoEnspy from '../../components/LogoEnspy';
+import LogoMinesup from '../../components/LogoMinesup';
+import LogoAntic from '../../components/LogoAntic';
 
 // Rendu côté serveur : la page fonctionne même si le visiteur (employeur,
 // ambassade...) désactive JavaScript, et évite un aller-retour API visible.
+// Sans JavaScript, le contenu reste en français (langue par défaut) — le
+// sélecteur FR/EN (voir pages/_app.js) nécessite en revanche du JS pour
+// basculer la traduction affichée.
 export async function getServerSideProps({ params }) {
   const document = await prisma.document.findUnique({
     where: { codeVerif: params.code },
@@ -37,11 +44,13 @@ export async function getServerSideProps({ params }) {
 }
 
 export default function PageVerification({ statut, document }) {
+  const { t, localeDate } = useLangue();
+
   if (statut === 'introuvable') {
     return (
       <Conteneur>
-        <Badge couleur="#c0392b" texte="✕ Document introuvable" />
-        <p>Aucun document ne correspond à ce code. Vérifiez qu'il a été correctement saisi.</p>
+        <Badge couleur="#c0392b" texte={t('verifier.introuvable')} />
+        <p>{t('verifier.introuvableTexte')}</p>
       </Conteneur>
     );
   }
@@ -49,29 +58,29 @@ export default function PageVerification({ statut, document }) {
   if (statut === 'revoque') {
     return (
       <Conteneur>
-        <Badge couleur="#c0392b" texte="✕ Document révoqué" />
-        <p>Ce document a été révoqué par l'université émettrice et n'est plus valide.</p>
+        <Badge couleur="#c0392b" texte={t('verifier.revoque')} />
+        <p>{t('verifier.revoqueTexte')}</p>
       </Conteneur>
     );
   }
 
   return (
     <Conteneur>
-      <Badge couleur="#1e8449" texte="✓ Document authentique" />
+      <Badge couleur="#1e8449" texte={t('verifier.authentique')} />
       <table style={{ marginTop: 24, width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
-          <Ligne label="Université émettrice" valeur={document.universite} />
-          <Ligne label="Document" valeur={document.intitule} />
-          <Ligne label="Titulaire" valeur={document.nomComplet} />
-          <Ligne label="Filière" valeur={document.filiere} />
-          <Ligne label="Niveau" valeur={document.niveau} />
-          <Ligne label="Année académique" valeur={document.anneeAcademique} />
-          <Ligne label="Semestre" valeur={document.semestre} />
+          <Ligne label={t('verifier.universite')} valeur={document.universite} />
+          <Ligne label={t('verifier.document')} valeur={document.intitule} />
+          <Ligne label={t('verifier.titulaire')} valeur={document.nomComplet} />
+          <Ligne label={t('verifier.filiere')} valeur={document.filiere} />
+          <Ligne label={t('verifier.niveau')} valeur={document.niveau} />
+          <Ligne label={t('verifier.anneeAcademique')} valeur={document.anneeAcademique} />
+          <Ligne label={t('verifier.semestre')} valeur={document.semestre} />
           <Ligne
-            label="Date d'émission"
-            valeur={new Date(document.dateEmission).toLocaleDateString('fr-FR')}
+            label={t('verifier.dateEmission')}
+            valeur={new Date(document.dateEmission).toLocaleDateString(localeDate)}
           />
-          <Ligne label="Code de vérification" valeur={document.codeVerif} />
+          <Ligne label={t('verifier.codeVerification')} valeur={document.codeVerif} />
         </tbody>
       </table>
     </Conteneur>
@@ -79,13 +88,22 @@ export default function PageVerification({ statut, document }) {
 }
 
 function Conteneur({ children }) {
+  const { t } = useLangue();
   return (
     <div style={{ maxWidth: 560, margin: '60px auto', padding: 24, fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 20, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
         <LogoEnspy taille={40} />
-        Vérification de document académique
-      </h1>
+        <LogoMinesup taille={40} />
+        <LogoAntic taille={40} />
+      </div>
+      <h1 style={{ fontSize: 20, marginBottom: 24 }}>{t('verifier.titre')}</h1>
       {children}
+      {/* Simple lien : aucune acceptation ni action requise pour consulter le résultat. */}
+      <footer style={{ marginTop: 40, paddingTop: 12, borderTop: '1px solid #eee', fontSize: 12 }}>
+        <Link href="/cgu" style={{ color: '#888' }}>
+          {t('verifier.mentionsLegales')}
+        </Link>
+      </footer>
     </div>
   );
 }

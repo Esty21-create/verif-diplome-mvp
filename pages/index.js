@@ -1,31 +1,33 @@
 import LogoEnspy from '../components/LogoEnspy';
+import { useLangue } from '../lib/i18n/LangueContext';
 
 export default function Accueil() {
+  const { t } = useLangue();
+
   return (
     <div style={{ maxWidth: 480, margin: '60px auto', padding: 24, fontFamily: 'sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <LogoEnspy taille={44} />
-        <h1 style={{ fontSize: 22, margin: 0 }}>Plateforme de vérification de diplômes</h1>
+        <h1 style={{ fontSize: 22, margin: 0 }}>{t('accueil.titre')}</h1>
       </div>
-      <p style={{ color: '#666' }}>MVP — pilote ENSPY</p>
+      <p style={{ color: '#666' }}>{t('accueil.sousTitre')}</p>
 
       <div style={{ display: 'grid', gap: 12, marginTop: 32 }}>
         <a href="/admin/emettre" style={lienStyle}>
-          → Publier un document (agent de la scolarité)
+          {t('accueil.publier')}
         </a>
         <a href="/admin/demandes" style={lienStyle}>
-          → Demandes de publication à examiner (agent de la scolarité)
+          {t('accueil.demandes')}
+        </a>
+        <a href="/admin/documents" style={lienStyle}>
+          {t('accueil.documents')}
         </a>
         <a href="/espace" style={lienStyle}>
-          → Mon espace (ancien/actuel étudiant) — documents, demandes de
-          publication et duplicatas
+          {t('accueil.espace')}
         </a>
-        <p style={{ fontSize: 13, color: '#999' }}>
-          La page de vérification publique s'ouvre en scannant le QR code d'un document,
-          à l'adresse /verifier/[code].
-        </p>
+        <p style={{ fontSize: 13, color: '#999' }}>{t('accueil.noteVerification')}</p>
         <a href="/cgu" style={{ fontSize: 13, color: '#666' }}>
-          Conditions Générales d'Utilisation
+          {t('accueil.cgu')}
         </a>
       </div>
     </div>

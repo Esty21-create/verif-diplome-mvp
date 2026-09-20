@@ -6,6 +6,7 @@ import { tamponnerDocument, ErreurFormatNonSupporte, FORMATS_ACCEPTES } from '..
 import { sessionValide } from '../../../lib/adminSession';
 import { niveauxDisponibles } from '../../../lib/filieresEnspy';
 import { chiffrerDonneesEtudiant } from '../../../lib/etudiantChiffrement';
+import { creerDocumentJournalise } from '../../../lib/journalEmission';
 
 // Le formulaire envoie maintenant un fichier (multipart/form-data) : on
 // désactive le bodyParser JSON par défaut de Next.js pour laisser formidable
@@ -120,8 +121,9 @@ export default async function handler(req, res) {
       urlVerification,
     });
 
-    const document = await prisma.document.create({
-      data: {
+    const document = await creerDocumentJournalise(
+      prisma,
+      {
         codeVerif,
         hash,
         type: typeDocument,
@@ -133,7 +135,8 @@ export default async function handler(req, res) {
         cheminFichier: cheminRelatif,
         etudiantId: etudiant.id,
       },
-    });
+      { source: 'EMISSION_DIRECTE' }
+    );
 
     return res.status(201).json({
       message: 'Document publié avec succès',

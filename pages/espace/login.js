@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import LogoEnspy from '../../components/LogoEnspy';
 import { matriculeSessionValide } from '../../lib/etudiantSession';
+import { useLangue } from '../../lib/i18n/LangueContext';
 
 // Si déjà connecté, inutile de repasser par le formulaire.
 export async function getServerSideProps({ req }) {
@@ -14,6 +15,7 @@ export async function getServerSideProps({ req }) {
 
 export default function ConnexionEtudiant() {
   const router = useRouter();
+  const { t } = useLangue();
   const [matricule, setMatricule] = useState('');
   const [dateNaissance, setDateNaissance] = useState('');
   const [accepteCGU, setAccepteCGU] = useState(false);
@@ -34,7 +36,9 @@ export default function ConnexionEtudiant() {
       const donnees = await reponse.json();
 
       if (!reponse.ok) {
-        setErreur(donnees.erreur || 'Une erreur est survenue');
+        // Les messages renvoyés par l'API restent en français (voir README) ;
+        // seuls les messages produits ici suivent la langue choisie.
+        setErreur(donnees.erreur || t('espaceLogin.erreurGenerique'));
       } else if (donnees.cguRequise) {
         // Première connexion : identifiants valides, mais il faut accepter
         // les CGU avant que la session ne soit posée.
@@ -43,7 +47,7 @@ export default function ConnexionEtudiant() {
         router.push('/espace');
       }
     } catch {
-      setErreur('Impossible de contacter le serveur');
+      setErreur(t('espaceLogin.erreurReseau'));
     } finally {
       setEnCours(false);
     }
@@ -64,13 +68,13 @@ export default function ConnexionEtudiant() {
     <div style={{ maxWidth: 400, margin: '80px auto', padding: 24, fontFamily: 'sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <LogoEnspy taille={40} />
-        <h1 style={{ fontSize: 20, margin: 0 }}>Mon espace — Anciens étudiants ENSPY</h1>
+        <h1 style={{ fontSize: 20, margin: 0 }}>{t('espaceLogin.titre')}</h1>
       </div>
 
       {!cguRequise ? (
         <form onSubmit={soumettreIdentifiants} style={{ display: 'grid', gap: 12 }}>
           <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 13, color: '#444' }}>Matricule</span>
+            <span style={{ fontSize: 13, color: '#444' }}>{t('espaceLogin.matricule')}</span>
             <input
               value={matricule}
               onChange={(e) => setMatricule(e.target.value)}
@@ -80,7 +84,7 @@ export default function ConnexionEtudiant() {
             />
           </label>
           <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ fontSize: 13, color: '#444' }}>Date de naissance</span>
+            <span style={{ fontSize: 13, color: '#444' }}>{t('espaceLogin.dateNaissance')}</span>
             <input
               type="date"
               value={dateNaissance}
@@ -101,14 +105,13 @@ export default function ConnexionEtudiant() {
               cursor: 'pointer',
             }}
           >
-            {enCours ? 'Connexion…' : 'Accéder à mon espace'}
+            {enCours ? t('espaceLogin.connexionEnCours') : t('espaceLogin.accederEspace')}
           </button>
         </form>
       ) : (
         <form onSubmit={confirmerCGU} style={{ display: 'grid', gap: 12 }}>
           <p style={{ fontSize: 14, color: '#444', margin: 0 }}>
-            Bienvenue. Avant d'accéder à votre espace pour la première fois, merci de confirmer
-            que vous avez pris connaissance des conditions d'utilisation de la plateforme.
+            {t('espaceLogin.bienvenueCGU')}
           </p>
           <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: '#444' }}>
             <input
@@ -119,9 +122,9 @@ export default function ConnexionEtudiant() {
               style={{ marginTop: 3 }}
             />
             <span>
-              J'ai lu et j'accepte les{' '}
+              {t('espaceLogin.accepteCGU')}{' '}
               <Link href="/cgu" target="_blank">
-                Conditions Générales d'Utilisation
+                {t('espaceLogin.lienCGU')}
               </Link>
             </span>
           </label>
@@ -137,7 +140,7 @@ export default function ConnexionEtudiant() {
               cursor: 'pointer',
             }}
           >
-            {enCours ? 'Connexion…' : 'Accepter et accéder à mon espace'}
+            {enCours ? t('espaceLogin.connexionEnCours') : t('espaceLogin.accepterEtAcceder')}
           </button>
         </form>
       )}

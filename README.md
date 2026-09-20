@@ -75,9 +75,37 @@ pages/demande-publication.js → protégée par la session étudiante, matricule
 pages/api/demandes/index.js  → API protégée qui enregistre la demande en attente (rien n'est publié)
 pages/admin/demandes.js      → file d'attente des demandes à examiner (back-office)
 pages/admin/demandes/[id].js → examen d'une demande : compléter les infos, valider ou rejeter
+pages/admin/documents.js  → documents publiés + journal des 20 dernières publications (modèle JournalEmission)
+lib/journalEmission.js    → crée document + ligne de journal dans une même transaction
 pages/verifier/[code].js  → page PUBLIQUE de vérification (ouverte via QR)
 pages/cgu.js              → page PUBLIQUE : Conditions Générales d'Utilisation
+lib/i18n/fr.js, lib/i18n/en.js → dictionnaires de traduction (bilingue FR/EN)
+lib/i18n/LangueContext.js → contexte React (langue, t(), localeDate) — voir section dédiée
+pages/_app.js             → affiche le sélecteur de langue en haut de toutes les pages
+pages/_document.js        → <html lang="fr"> par défaut, mis à jour côté client au changement de langue
 ```
+
+## Interface bilingue (FR/EN)
+
+Approche volontairement minimale pour ce MVP, sans librairie i18n : un
+dictionnaire par langue (`lib/i18n/fr.js`, `lib/i18n/en.js`) et un contexte
+React (`lib/i18n/LangueContext.js`) qui expose `t(cle, variables)` et
+`localeDate` (pour `toLocaleDateString`). `pages/_app.js` enveloppe toute
+l'application dans ce contexte et affiche le sélecteur **FR | EN** en haut
+de chaque page. Le français reste la langue par défaut ; le choix de
+l'utilisateur est mémorisé en `localStorage` (perdu en navigation privée ou
+sans JavaScript — sans incidence sur `/verifier/[code]`, qui reste
+pleinement lisible en français par défaut sans JS).
+
+Le contenu est intégralement traduit sur **`/verifier/[code]`** et
+**`/espace`** (+ `/espace/login`), les deux priorités demandées, ainsi que
+sur la page d'accueil `/`. Les autres pages (back-office admin,
+`/demande-publication`, `/cgu`...) affichent bien le sélecteur mais restent
+en français pour l'instant quel que soit le réglage — à étendre au besoin en ajoutant leurs clés dans `lib/i18n/*.js` et
+en appelant `useLangue()` dans ces pages. Les messages d'erreur renvoyés par
+les API (ex: identifiants invalides) restent également en français : les
+traduire supposerait de transmettre la langue au serveur, hors du périmètre
+"le plus simple possible" demandé pour ce MVP.
 
 ## Principe du tampon numérique
 

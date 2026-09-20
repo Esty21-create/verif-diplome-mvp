@@ -74,6 +74,28 @@ model Document {
   revoque        Boolean  @default(false)
 }
 
+// Journal des publications de documents (une ligne par document émis), affiché
+// en bas de /admin/documents. Volontairement sans relation Prisma vers
+// Document : le journal doit survivre à toute suppression éventuelle d'un
+// document, et codeVerif suffit à faire le lien.
+model JournalEmission {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  // Code du document publié (Document.codeVerif)
+  codeVerif   String
+  // Qui a publié. L'admin n'a pour l'instant qu'un mot de passe partagé (voir
+  // lib/adminSession.js) : impossible d'identifier un agent précis, on
+  // enregistre donc un rôle ("agent-scolarite"). À remplacer par un
+  // identifiant individuel le jour où les comptes agents existeront.
+  publiePar   String
+  // "EMISSION_DIRECTE" (/admin/emettre) | "VALIDATION_DEMANDE" (/admin/demandes/[id])
+  source      String
+  // Renseigné uniquement si source = VALIDATION_DEMANDE
+  demandeId   String?
+
+  @@index([date])
+}
+
 // Demande de publication soumise directement par un ancien/actuel étudiant
 // depuis /demande-publication (accessible depuis son espace personnel,
 // /espace), à examiner par un agent de la scolarité sur /admin/demandes

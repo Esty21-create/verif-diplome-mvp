@@ -4,7 +4,8 @@ import { prisma } from '../../lib/prisma';
 import { matriculeSessionValide } from '../../lib/etudiantSession';
 import { dechiffrer } from '../../lib/chiffrement';
 import LogoEnspy from '../../components/LogoEnspy';
-import { formaterTarif, LABELS_TYPE_DOCUMENT } from '../../lib/tarifs';
+import { formaterTarif } from '../../lib/tarifs';
+import { useLangue } from '../../lib/i18n/LangueContext';
 
 // Page protégée : même principe que /admin/emettre côté agent, mais pour
 // l'étudiant (session posée par /espace/login, matricule + date de naissance).
@@ -36,7 +37,8 @@ export async function getServerSideProps({ req }) {
         nom: dechiffrer(etudiant.nom),
         prenom: dechiffrer(etudiant.prenom),
         filiere: etudiant.filiere,
-        scolarite: `${etudiant.anneeEntree} - ${etudiant.anneeSortie || 'en cours'}`,
+        anneeEntree: etudiant.anneeEntree,
+        anneeSortie: etudiant.anneeSortie,
       },
       documents: etudiant.documents.map((d) => ({
         id: d.id,
@@ -61,14 +63,15 @@ export async function getServerSideProps({ req }) {
   };
 }
 
-const LABELS_STATUT = {
-  EN_ATTENTE: { texte: 'En attente', couleur: '#b7791f', fond: '#fff8e6' },
-  VALIDEE: { texte: 'Validée', couleur: '#1e8449', fond: '#eafaf1' },
-  REJETEE: { texte: 'Rejetée', couleur: '#c0392b', fond: '#fdecea' },
+const COULEURS_STATUT = {
+  EN_ATTENTE: { couleur: '#b7791f', fond: '#fff8e6' },
+  VALIDEE: { couleur: '#1e8449', fond: '#eafaf1' },
+  REJETEE: { couleur: '#c0392b', fond: '#fdecea' },
 };
 
 export default function EspacePersonnel({ etudiant, documents, demandes }) {
   const router = useRouter();
+  const { t, localeDate } = useLangue();
 
   const seDeconnecter = async () => {
     await fetch('/api/espace/logout', { method: 'POST' });
@@ -80,24 +83,27 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h1 style={{ fontSize: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
           <LogoEnspy taille={40} />
-          Mon espace — Anciens étudiants ENSPY
+          {t('espace.titre')}
         </h1>
         <button
           type="button"
           onClick={seDeconnecter}
           style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', fontSize: 13 }}
         >
-          Se déconnecter
+          {t('espace.seDeconnecter')}
         </button>
       </div>
 
-      <p>Bonjour {etudiant.prenom} {etudiant.nom}</p>
+      <p>{t('espace.bonjour', { prenom: etudiant.prenom, nom: etudiant.nom })}</p>
       <p style={{ fontSize: 13, color: '#666' }}>
-        {etudiant.filiere} — Scolarité : {etudiant.scolarite}
+        {etudiant.filiere} — {t('espace.scolarite', {
+          entree: etudiant.anneeEntree,
+          sortie: etudiant.anneeSortie || t('espace.enCours'),
+        })}
       </p>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 28 }}>
-        <h2 style={{ fontSize: 16 }}>Mes documents publiés</h2>
+        <h2 style={{ fontSize: 16 }}>{t('espace.mesDocuments')}</h2>
         <Link
           href="/demande-publication"
           style={{
@@ -110,12 +116,12 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
             textDecoration: 'none',
           }}
         >
-          Soumettre un document ou demander un duplicata
+          {t('espace.soumettre')}
         </Link>
       </div>
 
       {documents.length === 0 ? (
-        <p style={{ color: '#666' }}>Aucun document disponible pour le moment.</p>
+        <p style={{ color: '#666' }}>{t('espace.aucunDocument')}</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 10 }}>
           {documents.map((doc) => {
@@ -124,18 +130,21 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
               <li key={doc.id} style={{ border: '1px solid #eee', borderRadius: 6, padding: 12 }}>
                 <div style={{ fontWeight: 500 }}>{doc.intitule}</div>
                 <div style={{ fontSize: 13, color: '#666' }}>
-                  {doc.niveau} — Année académique {doc.anneeAcademique} — {doc.semestre}
+                  {doc.niveau} — {t('verifier.anneeAcademique')} {doc.anneeAcademique} — {doc.semestre}
                 </div>
                 <div style={{ fontSize: 13, color: '#666' }}>
-                  Émis le {new Date(doc.dateEmission).toLocaleDateString('fr-FR')} — Code : {doc.codeVerif}
+                  {t('espace.emisLe', {
+                    date: new Date(doc.dateEmission).toLocaleDateString(localeDate),
+                    code: doc.codeVerif,
+                  })}
                 </div>
                 {tarif && (
                   <div style={{ fontSize: 12, color: '#999' }}>
-                    Tarif indicatif de délivrance : {tarif.local} (local) / {tarif.diaspora} (diaspora)
+                    {t('espace.tarifIndicatif', { local: tarif.local, diaspora: tarif.diaspora })}
                   </div>
                 )}
                 <a href={doc.urlTelechargement} target="_blank" rel="noreferrer">
-                  Télécharger le PDF
+                  {t('espace.telecharger')}
                 </a>
               </li>
             );
@@ -143,18 +152,18 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
         </ul>
       )}
 
-      <h2 style={{ fontSize: 16, marginTop: 28 }}>Mes demandes en cours</h2>
+      <h2 style={{ fontSize: 16, marginTop: 28 }}>{t('espace.mesDemandes')}</h2>
       {demandes.length === 0 ? (
-        <p style={{ color: '#666' }}>Aucune demande soumise pour le moment.</p>
+        <p style={{ color: '#666' }}>{t('espace.aucuneDemande')}</p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 10 }}>
           {demandes.map((d) => {
-            const statut = LABELS_STATUT[d.statut] || LABELS_STATUT.EN_ATTENTE;
+            const couleurs = COULEURS_STATUT[d.statut] || COULEURS_STATUT.EN_ATTENTE;
             return (
               <li key={d.id} style={{ border: '1px solid #eee', borderRadius: 6, padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 500 }}>
-                    {LABELS_TYPE_DOCUMENT[d.typeDocument] || d.typeDocument}
+                    {t(`typeDocument.${d.typeDocument}`)}
                     {d.nature === 'DUPLICATA' && (
                       <span
                         style={{
@@ -167,7 +176,7 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
                           background: '#f1eafc',
                         }}
                       >
-                        Duplicata
+                        {t('espace.duplicata')}
                       </span>
                     )}
                   </span>
@@ -177,19 +186,19 @@ export default function EspacePersonnel({ etudiant, documents, demandes }) {
                       borderRadius: 12,
                       fontSize: 12,
                       fontWeight: 500,
-                      color: statut.couleur,
-                      background: statut.fond,
+                      color: couleurs.couleur,
+                      background: couleurs.fond,
                     }}
                   >
-                    {statut.texte}
+                    {t(`espace.statut.${d.statut}`)}
                   </span>
                 </div>
                 <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
-                  Soumise le {new Date(d.dateSoumission).toLocaleDateString('fr-FR')}
+                  {t('espace.soumiseLe', { date: new Date(d.dateSoumission).toLocaleDateString(localeDate) })}
                 </div>
                 {d.statut === 'REJETEE' && d.commentaireAdmin && (
                   <div style={{ fontSize: 13, marginTop: 4 }}>
-                    <strong>Motif :</strong> {d.commentaireAdmin}
+                    {t('espace.motif', { motif: d.commentaireAdmin })}
                   </div>
                 )}
               </li>
